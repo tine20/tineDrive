@@ -31,6 +31,7 @@
 #include <QJsonObject>
 #ifndef TOKEN_AUTH_ONLY
 #include <QPainter>
+#include <QPainterPath>
 #endif
 
 #include "networkjobs.h"
@@ -915,9 +916,9 @@ void fetchPrivateLinkUrl(AccountPtr account, const QString &remotePath,
     const QByteArray &numericFileId, QObject *target,
     std::function<void(const QString &url)> targetFun)
 {
-    QString oldUrl;
+    QString oldUrl = account->deprecatedPrivateLinkUrl(remotePath).toString(QUrl::FullyEncoded);
     if (!numericFileId.isEmpty())
-        oldUrl = account->deprecatedPrivateLinkUrl(numericFileId).toString(QUrl::FullyEncoded);
+        oldUrl = account->deprecatedPrivateLinkUrl(remotePath).toString(QUrl::FullyEncoded);
 
     // Retrieve the new link by PROPFIND
     PropfindJob *job = new PropfindJob(account, remotePath, target);
@@ -932,7 +933,7 @@ void fetchPrivateLinkUrl(AccountPtr account, const QString &remotePath,
         if (!privateLinkUrl.isEmpty()) {
             targetFun(privateLinkUrl);
         } else if (!numericFileId.isEmpty()) {
-            targetFun(account->deprecatedPrivateLinkUrl(numericFileId).toString(QUrl::FullyEncoded));
+            targetFun(account->deprecatedPrivateLinkUrl(remotePath).toString(QUrl::FullyEncoded));
         } else {
             targetFun(oldUrl);
         }
