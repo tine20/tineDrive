@@ -29,7 +29,6 @@ set(libsync_SRCS
     abstractnetworkjob.cpp
     networkjobs.cpp
     owncloudpropagator.cpp
-    owncloudtheme.cpp
     progressdispatcher.cpp
     propagatorjobs.cpp
     propagatedownload.cpp
@@ -46,6 +45,7 @@ set(libsync_SRCS
     localdiscoverytracker.cpp
     syncresult.cpp
     theme.cpp
+    tine20driveTheme.cpp
     creds/dummycredentials.cpp
     creds/abstractcredentials.cpp
     creds/credentialscommon.cpp
