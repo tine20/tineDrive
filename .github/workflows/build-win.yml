@@ -1,0 +1,31 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ tine20drive-2.5.4 ]
+  pull_request:
+    branches: [ tine20drive-2.5.4 ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: docker login
+      env:
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}   
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}  
+      run: |
+        docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+    - name: Build the Docker image
+      run: 
+        cd admin/win/docker
+        docker build . -t owncloud-client-win32:2.5.4
+    - name: Run the Docker image
+      run: 
+        cd ../../..
+        docker run -v "$PWD:/home/user/client" owncloud-client-win32:2.5.4  /home/user/client/admin/win/docker/build.sh client/  $(id -u)
+
