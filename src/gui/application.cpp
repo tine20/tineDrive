@@ -647,7 +647,7 @@ void Application::showHelp()
 
     if (_theme->appName() == QLatin1String("tine20drive"))
         stream << endl
-               << "For more information, see http://www.owncloud.org" << endl
+               << "For more information, see http://www.tine20.com" << endl
                << endl;
 
     displayHelpText(helpText);

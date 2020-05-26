@@ -19,7 +19,7 @@ install:
     git submodule update --init --recursive
 
     #use cmd to silence powershell behaviour for stderr
-    & cmd /C "git clone -q --depth=1 git://anongit.kde.org/craftmaster.git C:\CraftMaster\CraftMaster 2>&1"
+    & cmd /C "git clone -q --depth=1 https://github.com/KDE/craftmaster.git C:\CraftMaster\CraftMaster 2>&1"
 
     craft $env:TARGET -i craft
     craft $env:TARGET --add-blueprint-repository [git]https://github.com/tine20/craft-blueprints-tine20drive.git
@@ -42,8 +42,8 @@ artifacts:
     name: tine20drive_artifact
 
 deploy:
-  release: v2.6.1-tine20drive
-  description: 'tine20drive v2.6.1 Release '
+  release: $(APPVEYOR_REPO_TAG_NAME)
+  description: 'Release'
   provider: GitHub
   auth_token:
     secure: MW3MTcfwOL8T9SbxbqDS4HkOa6aI/ErApmqVVcsWQQqKVPPkBjMtzSWudE8z/hBg # your encrypted token from GitHub
@@ -51,7 +51,6 @@ deploy:
   draft: true
   prerelease: false
   on:
-    branch: v2.6.1-tine20drive                 # branch equals to tag
     APPVEYOR_REPO_TAG: true        # deploy on tag push only
 
 environment:
