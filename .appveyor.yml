@@ -35,10 +35,10 @@ test_script:
 
 after_test:
 - ps: |
-    craft $env:TARGET --src-dir $env:APPVEYOR_BUILD_FOLDER --options [Packager]PackageType=NullsoftInstallerPackager --package tine20drive
+    craft $env:TARGET --src-dir $env:APPVEYOR_BUILD_FOLDER --options [Packager]PackageType=MSIFragmentPackager --package tine20drive
 
 artifacts:
-  - path: binaries\**\*.exe
+  - path: binaries\**\*
     name: tine20drive_artifact
 
 deploy:
