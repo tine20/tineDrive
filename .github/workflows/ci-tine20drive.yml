@@ -39,6 +39,13 @@ jobs:
         sudo make macdeployqt
         sudo bash $GITHUB_WORKSPACE/admin/osx/sign_app.sh $GITHUB_WORKSPACE/install/tine20drive.app "${{ secrets.DEVELOPER_ID_APPLICATION }}" "${{ secrets.TEAM_IDENTITY }}"
         sudo bash admin/osx/create_mac.sh $GITHUB_WORKSPACE/install/ $PWD "${{ secrets.DEVELOPER_ID_INSTALLER }}" "${{ secrets.APPLE_ID_MAIL }}" "${{ secrets.APPLE_APP_PASSWORD }}" "${{ secrets.ASC_PROVIDER }}"        
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: mac
+        path: ./install/*.pkg
+    
     - name: Make Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
