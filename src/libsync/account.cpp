@@ -202,6 +202,17 @@ QUrl Account::davUrl() const
     return Utility::concatUrlPath(url(), davPath());
 }
 
+QString Account::deprecatedPrivateLinkUrl(const QString &remotePath) const
+{
+    QString refPath = QLatin1String("#/Filemanager/showNode/personal");
+
+    if (remotePath.contains(QLatin1String("shared"))) {
+        refPath = QLatin1String("#/Filemanager/showNode");
+    }
+
+    return QString(QLatin1String("%1%2%3")).arg(_userVisibleUrl.toString(), refPath, remotePath);
+}
+
 /**
  * clear all cookies. (Session cookies or not)
  */

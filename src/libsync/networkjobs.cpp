@@ -881,6 +881,8 @@ bool SimpleNetworkJob::finished()
 void fetchPrivateLinkUrl(AccountPtr account, const QString &remotePath, QObject *target,
     std::function<void(const QString &url)> targetFun)
 {
+    QString oldUrl = account->deprecatedPrivateLinkUrl(remotePath);
+
     // Retrieve the new link by PROPFIND
     PropfindJob *job = new PropfindJob(account, remotePath, target);
     job->setProperties({ QByteArrayLiteral("http://owncloud.org/ns:privatelink") });
@@ -889,6 +891,8 @@ void fetchPrivateLinkUrl(AccountPtr account, const QString &remotePath, QObject 
         auto privateLinkUrl = result[QStringLiteral("privatelink")];
         if (!privateLinkUrl.isEmpty()) {
             targetFun(privateLinkUrl);
+        } else {
+            targetFun(oldUrl);
         }
     });
     job->start();

@@ -950,7 +950,7 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
         } else if (publicLinksEnabled) {
             listener->sendMessage(QStringLiteral("MENU_ITEM:MANAGE_PUBLIC_LINKS") + flagString + tr("Copy public link to clipboard"));
         }
-    }
+    }*/
 
     listener->sendMessage(QStringLiteral("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy private link to clipboard"));
 

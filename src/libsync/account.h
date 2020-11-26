@@ -123,6 +123,13 @@ public:
     /** Returns webdav entry URL, based on url() */
     QUrl davUrl() const;
 
+    /** Returns the legacy permalink url for a file.
+     *
+     * This uses the old way of manually building the url. New code should
+     * use the "privatelink" property accessible via PROPFIND.
+     */
+    QString deprecatedPrivateLinkUrl(const QString &remotePath) const;
+
     /** Holds the accounts credentials */
     AbstractCredentials *credentials() const;
     void setCredentials(AbstractCredentials *cred);

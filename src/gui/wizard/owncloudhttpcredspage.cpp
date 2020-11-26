@@ -96,7 +96,7 @@ void OwncloudHttpCredsPage::initializePage()
         }
     }
     _ui.tokenLabel->setText(HttpCredentialsGui::requestAppPasswordText(ocWizard->account().data()));
-    _ui.tokenLabel->setVisible(!_ui.tokenLabel->text().isEmpty());
+    _ui.tokenLabel->setVisible(false);
     _ui.leUsername->setFocus();
 }
 
