@@ -1,68 +1,39 @@
-# ownCloud Desktop Client
-
-[![Build Status](https://drone.owncloud.com/api/badges/owncloud/client/status.svg)](https://drone.owncloud.com/owncloud/client) [![Build Status](https://github.com/owncloud/client/workflows/ownCloud%20CI/badge.svg)](https://github.com/owncloud/client/actions)
-
+# Tine 2.0 Drive
 
 ## Introduction
 
-The ownCloud Desktop Client is a tool to synchronize files from ownCloud Server
+The Tine 2.0 Drive is a tool to synchronize files from Server
 with your computer.
 
-## Download
 
-### Binary packages
+### [Latest packages](https://github.com/tine20/tine20Drive/releases)
 
-* Refer to the download page https://owncloud.org/download/#owncloud-desktop-client
+---
 
-### Source code
+## Installation 
 
-The ownCloud Desktop Client is developed in Git. Since Git makes it easy to
+#### macOS 
+
+- Install .pkg file from github.
+
+#### Windows
+
+- Install .exe file from github.
+
+---
+
+## Source code
+
+The Tine 2.0 Drive is developed in Git. Since Git makes it easy to
 fork and improve the source code and to adapt it to your need, many copies
 can be found on the Internet, in particular on GitHub. However, the
 authoritative repository maintained by the developers is located at
-https://github.com/owncloud/client.
+https://github.com/tine20/tine20Drive.
 
-## Building the source code
-
-[Building the Client](https://doc.owncloud.org/desktop/building.html)
-in the ownCloud Desktop Client manual.
-
-## Reporting issues and contributing
+## Reporting issues
 
 If you find any bugs or have any suggestion for improvement, please
-file an issue at https://github.com/owncloud/client/issues. Do not
-contact the authors directly by mail, as this increases the chance
-of your report being lost.
-
-If you created a patch, please submit a [Pull
-Request](https://github.com/owncloud/client/pulls). For non-trivial
-patches, we need you to sign the [Contributor
-Agreement](https://owncloud.org/contribute/agreement) before
-we can accept your patch.
-
-If you want to contact us, e.g. before starting a more complex feature,
-you can join us at
-[#owncloud-client-dev](irc://irc.freenode.net/#owncloud-client-dev).
-
-## Maintainers and Contributors
-
-The current maintainers of this repository are:
-
-* Hannah von Reth <hannah.vonreth@owncloud.com>
-* Dominik Schmidt <dev@dominik-schmidt.de>
-* Markus Goetz <guruz@owncloud.com>
-* Olivier Goffart <ogoffart@owncloud.com>
-* Christian Kamm <mail@ckamm.de>
-
-ownCloud Desktop Client is developed by the ownCloud community and [receives
-patches from a variety of authors](https://github.com/owncloud/client/graphs/contributors).
-
-Past maintainers:
-
-* Thomas Müller <thomas.mueller@owncloud.com>
-* Klaas Freitag <freitag@owncloud.com>
-* Daniel Molkentin <daniel@molkentin.de>
-* Andreas Schneider <asn@cryptomilk.org>
+file an issue at https://github.com/tine20/tine20Drive/issues.
 
 ## License
 
