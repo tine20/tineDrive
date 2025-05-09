@@ -43,7 +43,7 @@ provider="$6"
 prjfile=$build_path/admin/osx/macosx.pkgproj
 
 # The name of the installer package
-installer="@APPLICATION_SHORTNAME@-qt@Qt5Core_VERSION@-@MIRALL_VERSION_FULL@@MIRALL_VERSION_SUFFIX@"
+installer="tineDrive-2.7.6"
 installer_file="$installer.pkg"
 installer_file_tar="$installer.pkg.tar"
 installer_file_tar_bz2="$installer.pkg.tar.bz2"
@@ -91,32 +91,32 @@ fi
 
 cd $install_path
 
-#xcrun altool --notarize-app --primary-bundle-id "com.tine20.desktopclient" --username "$apple_id" --password "$apple_app_password" --asc-provider "$provider" --file "$installer_file" &> tmp
-#uuid=`cat tmp | grep -Eo '\\w{8}-(\\w{4}-){3}\\w{12}$'`
-#while true; do
-#    echo "checking for notarization..."
-#    xcrun altool --notarization-info "$uuid" --username "$apple_id" --password "$apple_app_password" &> tmp
-#    r=`cat tmp`
-#    t=`echo "$r" | grep "success"`
-#    f=`echo "$r" | grep "invalid"`
-#    p=`echo "$r" | grep "in progess"`
-#    if [[ "$t" != "" ]]; then
-#        echo "notarization done!"
-#        xcrun stapler staple "$installer_file"
-#        echo "stapler done!"
-#        spctl -a -v --type install "$installer_file"
-#        break
-#    fi
-#    if [[ "$f" != "" ]]; then
-#        echo "$r"
-#        return 1
-#    fi
-#    if [[ "$p" != "" ]]; then
-#        echo "in progess"
-#    fi
-#   echo "not finish yet, sleep 30sec then check again..."
-#   sleep 30
-#done
+xcrun altool --notarize-app --primary-bundle-id "com.tine20.desktopclient" --username "$apple_id" --password "$apple_app_password" --asc-provider "$provider" --file "$installer_file" &> tmp
+uuid=`cat tmp | grep -Eo '\\w{8}-(\\w{4}-){3}\\w{12}$'`
+while true; do
+    echo "checking for notarization..."
+    xcrun altool --notarization-info "$uuid" --username "$apple_id" --password "$apple_app_password" &> tmp
+    r=`cat tmp`
+    t=`echo "$r" | grep "success"`
+    f=`echo "$r" | grep "invalid"`
+    p=`echo "$r" | grep "in progess"`
+    if [[ "$t" != "" ]]; then
+        echo "notarization done!"
+        xcrun stapler staple "$installer_file"
+        echo "stapler done!"
+        spctl -a -v --type install "$installer_file"
+        break
+    fi
+    if [[ "$f" != "" ]]; then
+        echo "$r"
+        return 1
+    fi
+    if [[ "$p" != "" ]]; then
+        echo "in progess"
+    fi
+   echo "not finish yet, sleep 30sec then check again..."
+   sleep 30
+done
 
 # Sparkle wants a tbz, it cannot install raw pkg
 tar cf "$installer_file_tar" "$installer_file"

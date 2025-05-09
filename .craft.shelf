@@ -1,6 +1,6 @@
 [General]
 version = 2
-blueprintrepositories = https://invent.kde.org/packaging/craft-blueprints-kde.git|master|;https://github.com/owncloud/craft-blueprints-owncloud.git|6|
+blueprintrepositories = https://invent.kde.org/packaging/craft-blueprints-kde.git|master|;https://github.com/tine20/craft-blueprints-tineDrive.git|6.0.0-tineDrive|
 
 [core/cacert]
 version = 2023-12-12
@@ -9,9 +9,9 @@ version = 2023-12-12
 version = master
 revision = 4a6f0200
 
-[craft/craft-blueprints-owncloud]
-version = 6
-revision = ba6feae525ff8f7115b9a094d2b574e2b21221dd
+[craft/craft-blueprints-tineDrive]
+version = 6.0.0-tineDrive
+revision = 189c558b4ddba6c34d0e64f06497103424f5028c
 
 [craft/craft-core]
 version = master
@@ -167,7 +167,7 @@ version = 1.3.2
 [libs/zlib]
 version = 1.3.1
 
-[owncloud/libcrashreporter-qt]
+[tineDrive/libcrashreporter-qt]
 version = master
 revision = 96da290
 
