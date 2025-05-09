@@ -1,6 +1,6 @@
 [General]
 version = 2
-blueprintrepositories = https://github.com/DeepDiver1975/craft-blueprints-kde.git|master|;https://github.com/owncloud/craft-blueprints-owncloud.git|master|
+blueprintrepositories = https://github.com/DeepDiver1975/craft-blueprints-kde.git|master|;https://github.com/tine20/craft-blueprints-tineDrive.git|6.0.0-tineDrive|
 
 [core/cacert]
 version = 2023-01-10
@@ -9,8 +9,8 @@ version = 2023-01-10
 version = master
 revision = 9be073decbb06b7425655806c4e57ccc85ea2117
 
-[craft/craft-blueprints-owncloud]
-version = 5
+[craft/craft-blueprints-tineDrive]
+version = 5.3.2-tineDrive
 
 [craft/craft-core]
 version = master

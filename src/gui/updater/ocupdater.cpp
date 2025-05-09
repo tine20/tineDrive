@@ -228,6 +228,9 @@ void OCUpdater::slotStartInstaller()
 
 void OCUpdater::checkForUpdate()
 {
+    //test redirect function to download the  github release
+    _accessManager->setRedirectPolicy(QNetworkRequest::NoLessSafeRedirectPolicy);
+
     QNetworkReply *reply = _accessManager->get(QNetworkRequest(_updateUrl));
     connect(_timeoutWatchdog, &QTimer::timeout, this, &OCUpdater::slotTimedOut);
     _timeoutWatchdog->start(30s);
