@@ -39,6 +39,7 @@
 #include <QApplication>
 #include <QDesktopServices>
 #include <QFileOpenEvent>
+#include <QSettings>  // add if not present
 
 namespace OCC {
 
