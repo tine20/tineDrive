@@ -28,10 +28,8 @@
         <string>(C) 2014-${MIRALL_VERSION_YEAR} ${APPLICATION_VENDOR}</string>
         <key>SUShowReleaseNotes</key>
         <false/>
-        <key>SUPublicDSAKeyFile</key>
-        <string>dsa_pub.pem</string>
         <key>SUPublicEDKey</key>
-        <string>F9ZGRXJE7XbQb2Kt36hwaBO4rYjkXYHiNS5hd+MkyKY=</string>
+        <string>QVojUhCrAmNzQfq31ycZNH2gDPhMmzgrh6DAb0kN/xU=</string>
         <key>SUAllowsAutomaticUpdates</key>
         <string>NO</string>
         <key>LSMinimumSystemVersion</key>
