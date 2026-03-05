@@ -52,6 +52,76 @@ using namespace std::chrono_literals;
 
 using namespace OCC;
 
+#include <QDir>
+#include <QFileInfo>
+#include <QSettings>
+#include "theme.h"
+
+#ifdef Q_OS_MAC
+static void migrateSettingsGroup(QSettings &src, QSettings &dst)
+{
+    for (const auto &key : src.childKeys()) {
+        dst.setValue(key, src.value(key));
+    }
+    for (const auto &group : src.childGroups()) {
+        src.beginGroup(group);
+        dst.beginGroup(group);
+        migrateSettingsGroup(src, dst);
+        dst.endGroup();
+        src.endGroup();
+    }
+}
+
+static void migrateLegacySettingsIfNeeded()
+{
+    QSettings newSettings(
+        QSettings::IniFormat,
+        QSettings::UserScope,
+        Theme::instance()->appName(),
+        Theme::instance()->appName());
+
+    qInfo() << "[Migration] new config path:" << newSettings.fileName();
+
+//     if (newSettings.value(QStringLiteral("LegacyMigrated")).toBool()) {
+//         qInfo() << "[Migration] already done, skipping";
+//         return;
+//     }
+
+    const QString oldCfgPath = QDir::homePath()
+        + QStringLiteral("/Library/Preferences/Tine 2.0 Drive/tine20drive.cfg");
+
+    qInfo() << "[Migration] looking for legacy config:" << oldCfgPath;
+
+    QFileInfo fi(oldCfgPath);
+    if (!fi.exists() || !fi.isReadable()) {
+        qInfo() << "[Migration] no legacy config found (fresh install), marking done";
+        newSettings.setValue(QStringLiteral("LegacyMigrated"), true);
+        newSettings.sync();
+        return;
+    }
+
+    qInfo() << "[Migration] found legacy config, size:" << fi.size();
+
+    QSettings oldSettings(oldCfgPath, QSettings::IniFormat);
+
+    qInfo() << "[Migration] legacy childGroups:" << oldSettings.childGroups()
+            << "childKeys:" << oldSettings.childKeys();
+
+    if (oldSettings.childGroups().isEmpty() && oldSettings.childKeys().isEmpty()) {
+        qWarning() << "[Migration] legacy config unreadable, will retry next launch";
+        return;
+    }
+
+    migrateSettingsGroup(oldSettings, newSettings);
+    newSettings.sync();
+
+    qInfo() << "[Migration] completed, keys:" << newSettings.allKeys().size();
+
+    newSettings.setValue(QStringLiteral("LegacyMigrated"), true);
+    newSettings.sync();
+}
+#endif
+
 Q_LOGGING_CATEGORY(lcMain, "gui.main", QtInfoMsg)
 
 namespace {
@@ -471,6 +541,10 @@ int main(int argc, char **argv)
         platform->setApplication(&app);
 
         auto folderManager = FolderMan::createInstance();
+
+#ifdef Q_OS_MAC
+        migrateLegacySettingsIfNeeded();  // ← before restore()
+#endif
 
         if (!AccountManager::instance()->restore()) {
             qCCritical(lcMain) << "Could not read the account settings, quitting";
