@@ -58,67 +58,115 @@ using namespace OCC;
 #include "theme.h"
 
 #ifdef Q_OS_MAC
-static void migrateSettingsGroup(QSettings &src, QSettings &dst)
-{
-    for (const auto &key : src.childKeys()) {
-        dst.setValue(key, src.value(key));
-    }
-    for (const auto &group : src.childGroups()) {
-        src.beginGroup(group);
-        dst.beginGroup(group);
-        migrateSettingsGroup(src, dst);
-        dst.endGroup();
-        src.endGroup();
-    }
-}
+#include <Security/Security.h>
+#include <CoreFoundation/CoreFoundation.h>
 
 static void migrateLegacySettingsIfNeeded()
 {
-    QSettings newSettings(
-        QSettings::IniFormat,
-        QSettings::UserScope,
-        Theme::instance()->appName(),
-        Theme::instance()->appName());
+    const QString targetCfgPath = QDir::homePath()
+        + QStringLiteral("/Library/Preferences/tineDrive/tineDrive.cfg");
 
-    qInfo() << "[Migration] new config path:" << newSettings.fileName();
+    QSettings newSettings(targetCfgPath, QSettings::IniFormat);
+    qInfo() << "[Migration] Target config path:" << newSettings.fileName();
 
-//     if (newSettings.value(QStringLiteral("LegacyMigrated")).toBool()) {
-//         qInfo() << "[Migration] already done, skipping";
-//         return;
-//     }
+    // FIX: skip entire migration block if already completed
+    if (newSettings.value(QStringLiteral("LegacyMigrated"), false).toBool()) {
+        qInfo() << "[Migration] Already migrated, skipping.";
+        return;
+    }
 
     const QString oldCfgPath = QDir::homePath()
         + QStringLiteral("/Library/Preferences/Tine 2.0 Drive/tine20drive.cfg");
 
-    qInfo() << "[Migration] looking for legacy config:" << oldCfgPath;
+    qInfo() << "[Migration] Searching for legacy config:" << oldCfgPath;
 
     QFileInfo fi(oldCfgPath);
     if (!fi.exists() || !fi.isReadable()) {
-        qInfo() << "[Migration] no legacy config found (fresh install), marking done";
-        newSettings.setValue(QStringLiteral("LegacyMigrated"), true);
-        newSettings.sync();
+        qInfo() << "[Migration] No legacy config found, skipping.";
         return;
     }
 
-    qInfo() << "[Migration] found legacy config, size:" << fi.size();
+    qInfo() << "[Migration] Legacy config found, size:" << fi.size() << "bytes.";
 
     QSettings oldSettings(oldCfgPath, QSettings::IniFormat);
+    const QStringList allLegacyKeys = oldSettings.allKeys();
 
-    qInfo() << "[Migration] legacy childGroups:" << oldSettings.childGroups()
-            << "childKeys:" << oldSettings.childKeys();
-
-    if (oldSettings.childGroups().isEmpty() && oldSettings.childKeys().isEmpty()) {
-        qWarning() << "[Migration] legacy config unreadable, will retry next launch";
+    if (allLegacyKeys.isEmpty()) {
+        qWarning() << "[Migration] Legacy config parsing returned zero absolute keys.";
         return;
     }
 
-    migrateSettingsGroup(oldSettings, newSettings);
-    newSettings.sync();
+    qInfo() << "[Migration] Total keys discovered for processing:" << allLegacyKeys.size();
 
-    qInfo() << "[Migration] completed, keys:" << newSettings.allKeys().size();
+    for (const QString &absoluteKey : allLegacyKeys) {
+        newSettings.setValue(absoluteKey, oldSettings.value(absoluteKey));
+    }
+
+    newSettings.sync();
+    qInfo() << "[Migration] Complete. Verified keys written:" << newSettings.allKeys().size();
+
+    OCC::Utility::setLaunchOnStartup(
+        QStringLiteral("tine20drive"),   // old app name (what was registered)
+        QStringLiteral("tine20drive"),   // old GUI name
+        false                            // false = remove
+    );
 
     newSettings.setValue(QStringLiteral("LegacyMigrated"), true);
     newSettings.sync();
+}
+
+static void handleApplicationFolderRenameIfNeeded()
+{
+    // 1. Get the absolute path to the currently running executable binary
+    // Example: /Applications/tine20drive.app/Contents/MacOS/tineDrive
+    QString binaryPath = QCoreApplication::applicationFilePath();
+
+    // Move up 3 directory layers to get the physical path of the outer .app container folder
+    QDir appDir(binaryPath);
+    appDir.cdUp(); // Into Contents/MacOS
+    appDir.cdUp(); // Into Contents
+    appDir.cdUp(); // Into the parent folder (e.g., /Applications)
+
+    QString currentAppBundlePath = appDir.absolutePath();
+    QFileInfo bundleInfo(currentAppBundlePath);
+
+    // Define your exact expected target directory folder name
+    QString targetAppBundlePath = bundleInfo.absolutePath() + QStringLiteral("/tineDrive.app");
+
+    // 2. Evaluate if we are running under the old legacy folder container name
+    if (bundleInfo.fileName() == QStringLiteral("tine20drive.app"))
+    {
+        qInfo() << "[Branding Fix] Legacy folder container detected running at:" << currentAppBundlePath;
+
+        // Double check to ensure we do not collide with an existing deployment folder
+        if (!QDir(targetAppBundlePath).exists()) {
+            qInfo() << "[Branding Fix] Renaming bundle folder to:" << targetAppBundlePath;
+
+            QDir parentDir(bundleInfo.absolutePath());
+            bool success = parentDir.rename(bundleInfo.fileName(), QStringLiteral("tineDrive.app"));
+
+            if (success) {
+                qInfo() << "[Branding Fix] Rename operation successful. Flushing macOS LaunchServices caches.";
+
+                // 3. Clear system caches asynchronously so Finder registers the change immediately
+                QStringList lsregisterArgs;
+                lsregisterArgs << QStringLiteral("-kill") << QStringLiteral("-r")
+                               << QStringLiteral("-domain") << QStringLiteral("user")
+                               << QStringLiteral("-domain") << QStringLiteral("local");
+
+                QProcess::startDetached(QStringLiteral("/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"), lsregisterArgs);
+
+                // Trigger Finder window layout update loop
+                QStringList killallArgs;
+                killallArgs << QStringLiteral("Finder");
+                QProcess::startDetached(QStringLiteral("killall"), killallArgs);
+
+                qInfo() << "[Branding Fix] Complete. Next application reload will cycle using perfect name layouts.";
+            } else {
+                qWarning() << "[Branding Fix] Failed to rename application wrapper folder. Permission restriction or locked file handles.";
+            }
+        }
+    }
 }
 #endif
 
@@ -490,6 +538,11 @@ int main(int argc, char **argv)
         app.setWindowIcon(Theme::instance()->applicationIcon());
         app.setApplicationVersion(Theme::instance()->versionSwitchOutput());
 
+#ifdef Q_OS_MAC
+        // Execute the path adjustments before the core window frames anchor file mapping
+        handleApplicationFolderRenameIfNeeded();
+#endif
+
 #ifdef Q_OS_LINUX
         // HACK:
         // With X11 arg0.name is used to map WM_CLASS to the desktop file.
@@ -529,6 +582,10 @@ int main(int argc, char **argv)
             return 0;
         }
 
+#ifdef Q_OS_MAC
+        migrateLegacySettingsIfNeeded();  // ← before restore()
+#endif
+
         // Check if the user upgraded or downgraded. We do this as early as possible, to detect
         // a possible downgrade.
         if (!checkClientVersion()) {
@@ -541,10 +598,6 @@ int main(int argc, char **argv)
         platform->setApplication(&app);
 
         auto folderManager = FolderMan::createInstance();
-
-#ifdef Q_OS_MAC
-        migrateLegacySettingsIfNeeded();  // ← before restore()
-#endif
 
         if (!AccountManager::instance()->restore()) {
             qCCritical(lcMain) << "Could not read the account settings, quitting";

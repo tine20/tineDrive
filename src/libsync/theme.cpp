@@ -201,7 +201,7 @@ QString Theme::defaultServerFolder() const
 
 QString Theme::helpUrl() const
 {
-    return QStringLiteral("https://tine20.com");
+    return QStringLiteral("https://www.tine-groupware.de");
 }
 
 QString Theme::conflictHelpUrl() const
