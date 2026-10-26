@@ -57,72 +57,116 @@ using namespace OCC;
 #include <QSettings>
 #include "theme.h"
 
-#ifdef Q_OS_MAC
-static void migrateSettingsGroup(QSettings &src, QSettings &dst)
-{
-    for (const auto &key : src.childKeys()) {
-        dst.setValue(key, src.value(key));
-    }
-    for (const auto &group : src.childGroups()) {
-        src.beginGroup(group);
-        dst.beginGroup(group);
-        migrateSettingsGroup(src, dst);
-        dst.endGroup();
-        src.endGroup();
-    }
-}
+Q_LOGGING_CATEGORY(lcMain, "gui.main", QtInfoMsg)
 
+#ifdef Q_OS_MAC
+#include <Security/Security.h>
+#include <CoreFoundation/CoreFoundation.h>
+
+// TODO: remove this after migrated configs from v2.7.5 to to v6.0.3
 static void migrateLegacySettingsIfNeeded()
 {
-    QSettings newSettings(
-        QSettings::IniFormat,
-        QSettings::UserScope,
-        Theme::instance()->appName(),
-        Theme::instance()->appName());
+    const QString legacyAppName = QStringLiteral("tine20drive");        // old app name (autostart registration)
+    const QString legacyPrefDir = QStringLiteral("Tine 2.0 Drive");        // ~/Library/Preferences/<dir>/
+    const QString legacyCfgName = QStringLiteral("tine20drive.cfg");
 
-    qInfo() << "[Migration] new config path:" << newSettings.fileName();
+    const QString prefsRoot = QDir::homePath() + QStringLiteral("/Library/Preferences/");
+    const QString targetCfgPath = ConfigFile::configFile();
+    const QString oldCfgPath = prefsRoot + legacyPrefDir + QLatin1Char('/') + legacyCfgName;
 
-//     if (newSettings.value(QStringLiteral("LegacyMigrated")).toBool()) {
-//         qInfo() << "[Migration] already done, skipping";
-//         return;
-//     }
+    qCInfo(lcMain) << "[Migration] Start. Current app:" << Theme::instance()->appName()
+                   << "version:" << OCC::Version::displayString();
+    qCInfo(lcMain) << "[Migration] Target config:" << targetCfgPath
+                   << "exists:" << QFileInfo::exists(targetCfgPath);
 
-    const QString oldCfgPath = QDir::homePath()
-        + QStringLiteral("/Library/Preferences/Tine 2.0 Drive/tine20drive.cfg");
-
-    qInfo() << "[Migration] looking for legacy config:" << oldCfgPath;
-
-    QFileInfo fi(oldCfgPath);
-    if (!fi.exists() || !fi.isReadable()) {
-        qInfo() << "[Migration] no legacy config found (fresh install), marking done";
-        newSettings.setValue(QStringLiteral("LegacyMigrated"), true);
-        newSettings.sync();
+    QSettings newSettings(targetCfgPath, QSettings::IniFormat);
+    if (newSettings.status() != QSettings::NoError) {
+        qCCritical(lcMain) << "[Migration] Cannot read target config, status:" << newSettings.status();
         return;
     }
 
-    qInfo() << "[Migration] found legacy config, size:" << fi.size();
+    if (newSettings.value(QStringLiteral("LegacyMigrated"), false).toBool()) {
+        qCInfo(lcMain) << "[Migration] Already migrated (LegacyMigrated=true), skipping."
+                       << "Target currently has" << newSettings.allKeys().size() << "keys.";
+        return;
+    }
+
+    qCInfo(lcMain) << "[Migration] Legacy config candidate:" << oldCfgPath;
+
+    const QFileInfo oldInfo(oldCfgPath);
+    const QFileInfo newInfo(targetCfgPath);
+    if (!oldInfo.exists() || !oldInfo.isReadable()) {
+        qCInfo(lcMain) << "[Migration] No readable legacy config (exists:" << oldInfo.exists()
+                       << "readable:" << oldInfo.isReadable() << "), skipping. LegacyMigrated NOT set.";
+        return;
+    }
+    if (oldInfo.canonicalFilePath() == newInfo.canonicalFilePath()) {
+        qCWarning(lcMain) << "[Migration] Legacy and target config are the same file, nothing to migrate."
+                          << "Fix the legacy path. LegacyMigrated NOT set.";
+        return;
+    }
+
+    qCInfo(lcMain) << "[Migration] Legacy config found, size:" << oldInfo.size() << "bytes, modified:"
+                   << oldInfo.lastModified().toString(Qt::ISODate);
 
     QSettings oldSettings(oldCfgPath, QSettings::IniFormat);
-
-    qInfo() << "[Migration] legacy childGroups:" << oldSettings.childGroups()
-            << "childKeys:" << oldSettings.childKeys();
-
-    if (oldSettings.childGroups().isEmpty() && oldSettings.childKeys().isEmpty()) {
-        qWarning() << "[Migration] legacy config unreadable, will retry next launch";
+    if (oldSettings.status() != QSettings::NoError) {
+        qCCritical(lcMain) << "[Migration] Cannot parse legacy config, status:" << oldSettings.status();
         return;
     }
 
-    migrateSettingsGroup(oldSettings, newSettings);
-    newSettings.sync();
+    const QStringList allLegacyKeys = oldSettings.allKeys();
+    if (allLegacyKeys.isEmpty()) {
+        qCWarning(lcMain) << "[Migration] Legacy config contains zero keys. LegacyMigrated NOT set.";
+        return;
+    }
 
-    qInfo() << "[Migration] completed, keys:" << newSettings.allKeys().size();
+    // Summary per top-level group (values are never logged, they may contain user names or URLs).
+    QMap<QString, int> perGroup;
+    for (const QString &key : allLegacyKeys) {
+        perGroup[key.section(QLatin1Char('/'), 0, 0)]++;
+    }
+    qCInfo(lcMain) << "[Migration] Legacy keys:" << allLegacyKeys.size() << "groups:" << perGroup;
+    qCInfo(lcMain) << "[Migration] Legacy accounts present:" << oldSettings.contains(QStringLiteral("Accounts/version"))
+                   << "account groups:" << oldSettings.value(QStringLiteral("Accounts/version")).isValid();
+
+    int added = 0, overwritten = 0, unchanged = 0;
+    for (const QString &key : allLegacyKeys) {
+        const QVariant value = oldSettings.value(key);
+        if (!newSettings.contains(key)) {
+            ++added;
+            qCDebug(lcMain) << "[Migration] add       " << key;
+        } else if (newSettings.value(key) != value) {
+            ++overwritten;
+            qCDebug(lcMain) << "[Migration] overwrite " << key;
+        } else {
+            ++unchanged;
+            continue;
+        }
+        newSettings.setValue(key, value);
+    }
+
+    newSettings.sync();
+    if (newSettings.status() != QSettings::NoError) {
+        qCCritical(lcMain) << "[Migration] Writing target config failed, status:" << newSettings.status()
+                           << ". LegacyMigrated NOT set.";
+        return;
+    }
+    qCInfo(lcMain) << "[Migration] Keys added:" << added << "overwritten:" << overwritten
+                   << "unchanged:" << unchanged << "target total now:" << newSettings.allKeys().size();
+
+    if (legacyAppName != Theme::instance()->appName()) {
+        qCInfo(lcMain) << "[Migration] Removing legacy autostart entry for" << legacyAppName;
+        OCC::Utility::setLaunchOnStartup(legacyAppName, legacyAppName, false);
+    } else {
+        qCWarning(lcMain) << "[Migration] Legacy app name equals current app name, autostart not touched.";
+    }
 
     newSettings.setValue(QStringLiteral("LegacyMigrated"), true);
     newSettings.sync();
+    qCInfo(lcMain) << "[Migration] Done. LegacyMigrated=true written, status:" << newSettings.status();
 }
 #endif
-
-Q_LOGGING_CATEGORY(lcMain, "gui.main", QtInfoMsg)
 
 namespace {
 inline auto msgParseOptionsC()
@@ -529,22 +573,23 @@ int main(int argc, char **argv)
             return 0;
         }
 
+        setupLogging(options);
+
+        #ifdef Q_OS_MAC
+                migrateLegacySettingsIfNeeded();  // ← before restore()
+        #endif
+
         // Check if the user upgraded or downgraded. We do this as early as possible, to detect
         // a possible downgrade.
         if (!checkClientVersion()) {
             return -1;
         }
 
-        setupLogging(options);
         NetworkInformation::instance(); //
 
         platform->setApplication(&app);
 
         auto folderManager = FolderMan::createInstance();
-
-#ifdef Q_OS_MAC
-        migrateLegacySettingsIfNeeded();  // ← before restore()
-#endif
 
         if (!AccountManager::instance()->restore()) {
             qCCritical(lcMain) << "Could not read the account settings, quitting";
